@@ -1,8 +1,12 @@
 ---
 Feature name: <unique id; lowercase; hyphenated>
 Start date: <YYYY-MM-DD>
-RFC PR: <leave empty>
-scikit-bio issue: <leave empty>
+Pull request: <leave empty>
+Authors: ["@<github-username>", "@<github-username>", ...]
+Contributors:
+- "@<github-username>"
+- "@<github-username>"
+- ...
 ---
 
 # Summary
