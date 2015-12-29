@@ -46,4 +46,5 @@ Stumped here.  Any ideas?
 - The `IntervalIndex` is not merged into `pandas` yet.
 - Not sure how intersections with intervals will work in `pandas` since it hasn't been implemented.
 - Not sure if distance between intervals will be incorporated into `pandas`.
+- How large of an issue will memory requirements be?  One nice thing about the `IntervalIndex` is not every base pair position needs to be documented, so it allows for row compression to some intent.  On the other hand, there is a possibility that there could be many metadata columns in the `positional_metadata` dataframe.  Then we may want to explore using a sparse data frame with the `IntervalIndex`.  Will definitely need to do more memory profiling.
 
