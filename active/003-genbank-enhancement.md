@@ -43,7 +43,7 @@ Stumped here.  Any ideas?
 
 # Unresolved questions
 
-The `IntervalIndex` is not merged into `pandas` yet.
-Not sure how intersections with intervals will work in `pandas` since it hasn't been implemented.
-Not sure if distance between intervals will be incorporated into `pandas`.
+- The `IntervalIndex` is not merged into `pandas` yet.
+- Not sure how intersections with intervals will work in `pandas` since it hasn't been implemented.
+- Not sure if distance between intervals will be incorporated into `pandas`.
 
