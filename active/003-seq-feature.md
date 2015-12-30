@@ -31,12 +31,11 @@ The `positional_metadata` class doesn't need to be altered at all.  All we need 
 The suggested main differences to the genbank io reader would be as follows
 
 1. The `positional metadata` dataframe can have an IntervalIndex.
-2. The `FEATURE` list in the `metadata` attribute will become a `FEATURE` dictionary where the feature names are keys.  This is to ensure that features can be directly looked up via the feature name.
-3. The feature name will be a column in the `positional_metadata`.  This is to be able to link the interval back to the feature metadata contained in `FEATURE` field within `metadata` dictionary.
-4. The `FEATURE` dictionary will have a `pd.Interval` in place of the `LOCATION` value.  This is to ensure easy look up in the `positional_metadata` dataframe.
+2. The feature name will be a column in the `positional_metadata`.  This is to be able to link the interval back to the feature metadata contained in the hashable object of column names. Discussed here https://github.com/biocore/scikit-bio/pull/1157/files
+3. The hashable object of column names will contain an interval to link to `positional_metadata`.
 
 # Drawbacks
-None that I can think of.  The api for `metadata` or `positional_metadata` doesn't need to be altered at all.
+The `pd.IntervalIndex` is not stable.  There are some methods that don't aren't implemented yet (i.e. intersection between intervals and indeces).
 
 # Alternatives
 Stumped here.  Any ideas?
@@ -44,7 +43,14 @@ Stumped here.  Any ideas?
 # Unresolved questions
 
 - The `IntervalIndex` is not merged into `pandas` yet.
-- Not sure how intersections with intervals will work in `pandas` since it hasn't been implemented.
 - Not sure if distance between intervals will be incorporated into `pandas`.
 - How large of an issue will memory requirements be?  One nice thing about the `IntervalIndex` is not every base pair position needs to be documented, so it allows for row compression to some extent.  On the other hand, there is a possibility that there could be many metadata columns in the `positional_metadata` dataframe.  Then we may want to explore using a sparse data frame with the `IntervalIndex`.  Will definitely need to do more memory profiling.
-
+- Not sure how intersections with intervals will work in `pandas` since it hasn't been implemented. In other words, will the following hold?
+```python
+from pandas.core.interval import Interval
+gene1 = Interval(0, 100)
+gene2 = Interval(50, 200)
+# we want this
+overlap = gene1.intersect(gene2)
+assert overlap == Interval(50, 100)
+```
