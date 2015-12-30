@@ -36,9 +36,24 @@ The suggested main differences to the genbank io reader would be as follows
 4. The subsequences of the Sequence object can be obtained via indexing by `pd.Interval`.
 
 # Drawbacks
-- The `pd.IntervalIndex` is not stable.  There are some methods that don't aren't implemented yet (i.e. intersection between intervals and indeces).
-- May need to some engineering to merge the conventional `positional_metadata` dataframe with a dataframe with an interval index.  One option is to convert the original dataframe into intervals before merging, since single points are still intervals.
+- The `pd.IntervalIndex` is not stable.  There are some methods that don't aren't implemented yet (i.e.  `IntervalIndex.is_non_overlapping_monotonic`)
+- May need to some engineering to merge the conventional `positional_metadata` dataframe with a dataframe with an interval index.  One option is to convert the original dataframe into intervals before merging, since single points are still intervals.  In other words, how can we make the following happen
+```python
+>>> from skbio import DNA, RNA
+>>> d1 = pd.DataFrame({'quality':[22, 25, 22, 18, 23, 25, 25, 25],
+                       'gene1'  : np.array([0,  1,  1,  1,  1,  1,  1, 0], dtype=bool))
+>>> d2 = pd.DataFrame({'exon': [True, False]} index=pd.IntervalIndex.from_tuples( (100, 200),(250, 500) ))
+>>> pd.merge(d1, d2)
+
+```
 - The index/slice operation for the Sequence object may need to be modified to handle `pd.Interval`
+```python
+>>> from skbio import DNA, RNA
+>>> d = DNA('ACCGGGTA', metadata={'id':"my-sequence", 'description':"GFP"},
+...          positional_metadata={'quality':[22, 25, 22, 18, 23, 25, 25, 25],
+                                  'gene1'  : np.array([0,  1,  1,  1,  1,  1,  1, 0], dtype=bool)})
+>>> d[d.positional_metadata['gene1']]
+```
 
 # Alternatives
 Stumped here.  Any ideas?
