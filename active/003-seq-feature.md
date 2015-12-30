@@ -33,10 +33,12 @@ The suggested main differences to the genbank io reader would be as follows
 1. The `positional metadata` dataframe can have an IntervalIndex.
 2. The feature name will be a column in the `positional_metadata`.  This is to be able to link the interval back to the feature metadata contained in the hashable object of column names. Discussed here https://github.com/biocore/scikit-bio/pull/1157/files
 3. The hashable object of column names will contain an interval to link to `positional_metadata`.
+4. The subsequences of the Sequence object can be obtained via indexing by `pd.Interval`.
 
 # Drawbacks
 - The `pd.IntervalIndex` is not stable.  There are some methods that don't aren't implemented yet (i.e. intersection between intervals and indeces).
 - May need to some engineering to merge the conventional `positional_metadata` dataframe with a dataframe with an interval index.  One option is to convert the original dataframe into intervals before merging, since single points are still intervals.
+- The index/slice operation for the Sequence object may need to be modified to handle `pd.Interval`
 
 # Alternatives
 Stumped here.  Any ideas?
