@@ -35,7 +35,8 @@ The suggested main differences to the genbank io reader would be as follows
 3. The hashable object of column names will contain an interval to link to `positional_metadata`.
 
 # Drawbacks
-The `pd.IntervalIndex` is not stable.  There are some methods that don't aren't implemented yet (i.e. intersection between intervals and indeces).
+- The `pd.IntervalIndex` is not stable.  There are some methods that don't aren't implemented yet (i.e. intersection between intervals and indeces).
+- May need to some engineering to merge the conventional `positional_metadata` dataframe with a dataframe with an interval index.  One option is to convert the original dataframe into intervals before merging, since single points are still intervals.
 
 # Alternatives
 Stumped here.  Any ideas?
