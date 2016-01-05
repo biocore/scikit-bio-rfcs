@@ -19,8 +19,8 @@ you will need the specific branch of `pandas` from github:
 
 ```
 git clone git@github.com:shoyer/pandas.git
-git pull origin IntervalIndex
 cd pandas
+git pull origin IntervalIndex
 pip install -e .
 ```
 
