@@ -3,9 +3,7 @@ Feature name: sequence-positional-metadata
 Start date: <2015-12-18>
 Pull request: 1
 Authors: ["@RNAer", "@mortonjt"]
-Contributors:
-- "@RNAer"
-- "@mortonjt"
+Contributors: ["@RNAer", "@mortonjt"]
 ---
 
 # Summary
@@ -24,14 +22,9 @@ git pull origin IntervalIndex
 pip install -e .
 ```
 
-The current implementation of `positional_metadata` in the `Sequence` class takes > 1TB
-memory to read in a E. coli genome with 260K features. And the `pandas` sparse dataframe
-can alleviate the mem usage, but it is still too memory hogging. The dicussion is mainly
-in this [thread](https://github.com/biocore/scikit-bio/issues/1159).
+The current implementation of `positional_metadata` in the `Sequence` class takes > 1TB memory to read in a E. coli genome with 260K features. And the `pandas` sparse data frame can alleviate the mem usage, but it is still too memory hogging. The discussion is mainly in this [thread](https://github.com/biocore/scikit-bio/issues/1159).
 
-Incorporating an IntervalIndex would also enable fast query times for fetch intervals,
-which is not supported by the current prototype of the `positional_metadata` at the moment.
-For example:
+Incorporating an IntervalIndex would also enable fast query times for fetch intervals,which is not supported by the current prototype of the `positional_metadata` at the moment. For example:
 
 ```python
 from pandas.core.interval import Interval, IntervalIndex
@@ -45,8 +38,8 @@ df = pd.DataFrame(data={'feature': ['gene1', 'gene2', 'gene3', 'gene4', 'gene5']
                   index=iid)
 df.loc[254, :]
 ```
-Because its implementation of `IntervalTree`, it will return all the features containing
-coordinate of 254 very fast:
+
+Because its implementation of `IntervalTree`, it will return all the features containing coordinate of 254 very fast:
 ```
             feature
 (190, 255]    gene1
@@ -56,26 +49,22 @@ coordinate of 254 very fast:
 
 # Detailed design
 
-Use `IntervalIndex` in `pandas`.  The IntervalIndex is functional for our purposes, and we don't have to even maintain it.
+Use `IntervalIndex` in `pandas`. It is still in active development and not merged into offical branch.There are some methods that don't aren't implemented yet(i.e. `IntervalIndex.is_non_overlapping_monotonic`). However, this is in high priority of `pandas` milestone and will eventually be merged.
 
-The `positional_metadata` dataframe has an IntervalIndex as its row index and has feature metadata as column(s) so that each row is sequence region and a feature can have multiple rows/regions. The `positional_metadata` can have duplicate row index to accommandate the scenario that a single region belongs to multiple features.
+1. We will have per position data frame (`positional_metadata`) and interval data frame (`interval_metadata`) to store the sequence metadata.
 
-The dataframe should have two columns, one for the name of the feature so we can fetch the feature by name of `str` easily, the other for other metadata of the features. It would be argued that the feature medatadata column contains a hashable, dict-like object. Making it hashable will be convenient for some `pandas` operations. (The hashable implementation is [here](https://github.com/biocore/scikit-bio/pull/1157/files).
+2. The `interval_metadata` dataframe has an `IntervalIndex` as its row index, feature type, strand, left open, right open, and other feature metadata as a dict.
 
+3. Each row in `interval_metadata` represents contiguous sequence region. A feature can span multiple rows. An interval can duplicate in multiple rows for different features. The map from feature to row/interval is multiple-to-multiple.
+
+## Types of queries
+1. fetch a interval.
+
+2. fetch a feature spanning multiple intervals, such as an gene of multiple exons. This will be queried by passing a keyword, like "gene='ABC transporter X'" to get all the intervals of the same gene. This works similarly as well to fetch all features with a common attributes (such as all genes of ABC transporters).
 
 # Drawbacks
 
-1. The `IntervalIndex` is still in active development and not merged into offical branch.
-There are some methods that don't aren't implemented yet
-(i.e. `IntervalIndex.is_non_overlapping_monotonic`). However, this is in high priority of `pandas`
-milestone and will eventually be merged. We probably set up a dev branch and code based on that.
-This branch can be merged back to master of scikit-bio once `IntervalIndex` gets into pandas.
-
-2. Need to change the API of `positional_metadata`. The proposed data frame with `IntervalIndex` is  different from current implementation, which has feature in column
-and position in row.
-
-3. Need to change the slice implementation. we can update `__getitem__` so that we can fetch the sub sequence by providing an interval or a list of intervals, to make the following code work:
-
+2. Need to change the slice implementation. we can update `__getitem__` so that we can fetch the sub sequence by providing an interval or a list of intervals, to make the following code work:
   ```python
   intervals = seq.positional_metadata.query('feature == gene1').index
   seq[intervals]
@@ -89,13 +78,6 @@ and position in row.
 
   This is certainly achievable by modifying `__getitem__`.
 
-4. May need to some engineering to combine the per position metadata (such as quality scores) with the interval metadata (such as gene locations). The question is:
-
-   do we really have other per position metadata besides quality score?
-
-   If no, we propose to strip out the quality score from the `positional_metadata` to have another numpy array to store it.
-
-   If yes, we propose that internally we have 2 objects, one storing the per position metadata and the other interval metadata, while keeping the similar, if not identical, API of a single `positional_metadata`. But this means a set of extra code to write into `Sequence` class.
 
 # Alternatives
 
