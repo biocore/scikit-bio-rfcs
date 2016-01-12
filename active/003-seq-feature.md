@@ -28,16 +28,22 @@ git pull origin IntervalIndex
 pip install -e .
 ```
 
+## `interval_metadata` object structure
+
 1. We will have per position data frame (`positional_metadata`) and interval data frame (`interval_metadata`) to store the sequence metadata.
 
 2. The `interval_metadata` dataframe has following index or columns:
+
    1) an `IntervalIndex` as its row index (named `INTERVAL`).
 
    2) feature type (`TYPE`). Type of the features, like `gene`, `CDS`, etc.
 
    3) strand (`STRAND`). Controled str volcabulary of `+`, `-`). `+` means the current strand and `-` means its anti-sense strand.
+
    4) left open (`LEFT` with `True` or `False` value), indicating if the exact lower boundary point of a feature is unknown. It would be `True` for the GenBank case of `<345..500`, as an example.
+
    5) right open (`RIGHT` with boolean values as `LEFT`)
+
    6) final column - all the other feature metadata as a dict (`ATTRIBUTES`).
 
    We'd like `TYPE`, `STRAND`, `LEFT`, and `RIGHT` as indiviual columns instead of storing them all in `ATTRIBUTES` dict. The idea is that we want to strip all the essential attributes for a seq feature from the `ATTRIBUTES` dict into columns of `interval_metadata` so that `ATTRIBUTES` is less cluttered.
@@ -118,11 +124,11 @@ IntervalIndex(left=[0, 0, 70, 50, 120, 120],
 
 ```
 
-## Operations that need modification
+## Operations that need update in `interval_metadata`
 
 There are some methods in `Sequence` and its child classes that needs to operate on `interval_metadata` accordingly. For all the situations below, in case users only want to rc the sequence and do not intend to use `interval_metadata`, we should provide an option to skip changes and only return the sequence without `interval_metadata`.
 
-* Reverse operation. `INTERVAL` also needs to be updated:
+* Reverse operation. `INTERVAL` needs to be updated:
 ``` python
 # original interval for a 9 nt gene
 >>> a = Interval(2, 11, closed='left')
