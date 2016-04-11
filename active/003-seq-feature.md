@@ -3,7 +3,7 @@ Feature name: interval-metadata
 Start date: <2015-12-18>
 Pull request: 1
 Authors: ["@RNAer", "@mortonjt"]
-Contributors: ["@RNAer", "@mortonjt"]
+Contributors: ["@RNAer", "@mortonjt", @ebolyen, @jairideout, @wasade, @gregcaporaso, @rob-knight]
 ---
 
 # Summary
@@ -25,6 +25,14 @@ features : dictionary.  keys are `skbio.Feature` objects.  values are a list of 
 intervals : bx-python `IntervalTree` object.  The keys correspond to intervals and the values correspond to a single `skbio.Feature` object.   
 
 These objects are arranged such that features can be queried by both feature attributes and intervals.
+
+## `Feature` object structure
+The feature object is more a less a immutable, hashable dictionary.  This store arbiturary information about features.  For instance, strand information, CDS, ...
+Since there is no standard in genbank and related formats for keywords, arbituary keywords can be encoded
+```python
+gene = Feature(name='sagA', type='CDS', strand='+', function='toxin')
+```
+The above code would encode for a gene, whose name is 'sagA', that is a coding region on the positive strand whose function is a toxin.
 
 ## `IntervalMetadata` functions
 `constructor(features=None)`
@@ -85,3 +93,6 @@ This is the current implementation in micronota and fits all of our use-cases at
 ##Feedback
 - The `update` method may not be the most straightforward for users.  The reason why we opted for this design was because the `skbio.Feature` object can only be indexed uniquely by hashing the entire feature.  Suggestions on how to improve this will be welcome.
 - The `query` method does a linear lookup when searching for attributes over features.  This problem can blow up (in terms of development) if we want faster querying.  Which is why we opted for slow, linear search.  Again suggestions here are welcome.
+
+## Other use cases
+Getting interval trees is actually fairly crucial for metadata querying.  Imagine if a user wants to query studies by a range of pH.
