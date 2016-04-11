@@ -3,7 +3,7 @@ Feature name: interval-metadata
 Start date: <2015-12-18>
 Pull request: 1
 Authors: ["@RNAer", "@mortonjt"]
-Contributors: ["@RNAer", "@mortonjt", @ebolyen, @jairideout, @wasade, @gregcaporaso, @rob-knight]
+Contributors: ["@RNAer", "@mortonjt", "@ebolyen", "@jairideout", "@wasade", "@gregcaporaso", "@rob-knight"]
 ---
 
 # Summary
