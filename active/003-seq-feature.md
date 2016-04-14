@@ -45,7 +45,7 @@ The above code would encode for a gene, whose name is 'sagA', that is a coding r
 
 ```python
    interval_metadata = IntervalMetadata()
-   interval_metadata.add(Feature(gene='sagB', location=0), (3, 5))
+   interval_metadata.add(Feature(gene='sagB', cds=True), (3, 5))
    iv = interval_metadata.reverse_complement(length=10)
 ```
 
@@ -58,8 +58,8 @@ The above code would encode for a gene, whose name is 'sagA', that is a coding r
     interval_metadata = IntervalMetadata()
         interval_metadata.add(Feature(gene='sagA', location=0), 1, (4, 7))
         interval_metadata.add(Feature(gene='sagB', location=0), (3, 5))
-        interval_metadata.update(Feature(gene='sagB', location=0),
-                                 Feature(gene='sagB', location=1))
+        interval_metadata.update(Feature(gene='sagB', cds=True),
+                                 Feature(gene='sagB', cds=False))
 ```
 
 
@@ -78,7 +78,8 @@ The above code would encode for a gene, whose name is 'sagA', that is a coding r
 - `*args` : a list of tuples to search for features
 - `**kwargs` : keyword arguments to query features by their attributes.
 - This allows for features to be searched by both intervals and keywords (i.e. CDS vs exon, ...)
-
+- Note that for a specific interval query, multiple features can be returned.
+ 
 ```python
    interval_metadata = IntervalMetadata(features={
                                         Feature(gene='sagA', location=0): [(0, 2), (4, 7)],
@@ -90,9 +91,17 @@ The above code would encode for a gene, whose name is 'sagA', that is a coding r
 
 This is the current implementation in micronota and fits all of our use-cases at the moment.  We don't feel that IntervalIndex objects as suggested in the recent pandas poll request can easily handle all of our use cases (i.e. non-contiguous intervals isn't straightforward).
 
-##Feedback
-- The `update` method may not be the most straightforward for users.  The reason why we opted for this design was because the `skbio.Feature` object can only be indexed uniquely by hashing the entire feature.  Suggestions on how to improve this will be welcome.
+##Drawbacks
 - The `query` method does a linear lookup when searching for attributes over features.  This problem can blow up (in terms of development) if we want faster querying.  Which is why we opted for slow, linear search.  Again suggestions here are welcome.
+- features and intervals are loosely coupled.
+
+#Unresolved Questions
+- The `update` method may not be the most straightforward for users.  The reason why we opted for this design was because the `skbio.Feature` object can only be indexed uniquely by hashing the entire feature.  Suggestions on how to improve this will be welcome.
+- Is there a better way to associate intervals to their corresponding features?
+- How will features be deleted?
+- How will intervals for a given feature be updated?
+- How exactly will slicing be handled?  May want to be able to pass intervals/features into `__getitem__` within the `skbio.Sequence` class
+- How exactly should features be added to the interval_metadata?
 
 ## Other use cases
 Getting interval trees is actually fairly crucial for metadata querying.  Imagine if a user wants to query studies by a range of pH.
