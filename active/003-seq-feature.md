@@ -102,6 +102,7 @@ This is the current implementation in micronota and fits all of our use-cases at
 - How will intervals for a given feature be updated?
 - How exactly will slicing be handled?  May want to be able to pass intervals/features into `__getitem__` within the `skbio.Sequence` class
 - How exactly should features be added to the interval_metadata?
+- What IntervalTree data structure should we stick with?
 
 ## Other use cases
 Getting interval trees is actually fairly crucial for metadata querying.  Imagine if a user wants to query studies by a range of pH.
