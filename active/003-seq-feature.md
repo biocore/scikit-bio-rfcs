@@ -27,11 +27,23 @@ intervals : bx-python `IntervalTree` object.  The keys correspond to intervals a
 These objects are arranged such that features can be queried by both feature attributes and intervals.
 
 ## `Feature` object structure
-The feature object is more a less a immutable, hashable dictionary.  This store arbiturary information about features.  For instance, strand information, CDS, ...
+The feature object is more a less a immutable, hashable dictionary that inherits from `collections.Mapping`.  This store arbiturary information about features.  For instance, strand information, CDS, ...
 Since there is no standard in genbank and related formats for keywords, arbituary keywords can be encoded
 ```python
 gene = Feature(name='sagA', type='CDS', strand='+', function='toxin')
 ```
+Since the `Feature` object is hashable, every attribute within the `Feature` object contributes to the hash.
+For example
+```python
+In [1]: from skbio.metadata import Feature
+
+In [2]: hash(Feature(name='sagA', strand='-'))
+Out[2]: -8103701482769186978
+
+In [3]: hash(Feature(name='sagA', strand='+'))
+Out[3]: 3837639023530960356
+```
+
 The above code would encode for a gene, whose name is 'sagA', that is a coding region on the positive strand whose function is a toxin.
 
 ## `IntervalMetadata` functions
@@ -44,9 +56,12 @@ The above code would encode for a gene, whose name is 'sagA', that is a coding r
 - This performs a reverse complement on all the coordinates with in IntervalTree.
 
 ```python
-   interval_metadata = IntervalMetadata()
-   interval_metadata.add(Feature(gene='sagB', cds=True), (3, 5))
-   iv = interval_metadata.reverse_complement(length=10)
+   >>> interval_metadata = IntervalMetadata()
+   >>> interval_metadata.add(Feature(gene='sagB', cds=True), (3, 5))
+   >>> iv = interval_metadata.reverse_complement(length=10)
+   >>> iv.query(gene='sagB')
+   >>> iv.features[f[0]]
+   [(5, 7)]
 ```
 
 `update(old_feature, new_feature)`
@@ -58,14 +73,14 @@ The above code would encode for a gene, whose name is 'sagA', that is a coding r
     interval_metadata = IntervalMetadata()
         interval_metadata.add(Feature(gene='sagA', location=0), 1, (4, 7))
         interval_metadata.add(Feature(gene='sagB', location=0), (3, 5))
-        interval_metadata.update(Feature(gene='sagB', cds=True),
-                                 Feature(gene='sagB', cds=False))
+        interval_metadata.update(Feature(gene='sagB', location=0),
+                                 Feature(gene='sagB', location=1))
 ```
 
 
 `add(feature, *intervals)`
 - `feature` : `skbio.Feature`. new feature object add into the `IntervalMetadata` object
-- `*intervals` : a list of tuples corresponding to intervals where the feature object exists.
+- `*intervals` : an iterable of tuples corresponding to intervals where the feature object exists.
 - This allows for a single feature (include those that have non-continugous features) to be added into the `IntervalMetadata` object.
 
 ```python
@@ -75,7 +90,7 @@ The above code would encode for a gene, whose name is 'sagA', that is a coding r
 ```
 
 `query(*args, **kwargs)`
-- `*args` : a list of tuples to search for features
+- `*args` : an iterable of tuples to search for features
 - `**kwargs` : keyword arguments to query features by their attributes.
 - This allows for features to be searched by both intervals and keywords (i.e. CDS vs exon, ...)
 - Note that for a specific interval query, multiple features can be returned.
@@ -95,14 +110,12 @@ This is the current implementation in micronota and fits all of our use-cases at
 - The `query` method does a linear lookup when searching for attributes over features.  This problem can blow up (in terms of development) if we want faster querying.  Which is why we opted for slow, linear search.  Again suggestions here are welcome.
 - features and intervals are loosely coupled.
 
-#Unresolved Questions
+#Unresolved Questions (arranged in priority)
 - The `update` method may not be the most straightforward for users.  The reason why we opted for this design was because the `skbio.Feature` object can only be indexed uniquely by hashing the entire feature.  Suggestions on how to improve this will be welcome.
 - Is there a better way to associate intervals to their corresponding features?
 - How will features be deleted?
 - How will intervals for a given feature be updated?
 - How exactly will slicing be handled?  May want to be able to pass intervals/features into `__getitem__` within the `skbio.Sequence` class
 - How exactly should features be added to the interval_metadata?
-- What IntervalTree data structure should we stick with?
-
-## Other use cases
-Getting interval trees is actually fairly crucial for metadata querying.  Imagine if a user wants to query studies by a range of pH.
+- What IntervalTree data structure should we stick with? 
+- Should we re-invent the wheel and roll out our own IntervalTree object.
