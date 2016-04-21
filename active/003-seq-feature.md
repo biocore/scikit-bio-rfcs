@@ -119,3 +119,52 @@ This is the current implementation in micronota and fits all of our use-cases at
 - How exactly should features be added to the interval_metadata?
 - What IntervalTree data structure should we stick with? 
 - Should we re-invent the wheel and roll out our own IntervalTree object.
+
+
+# Alternative design
+Another alternative is to make `BoundFeature` objects that are tightly coupled with the `IntervalTree`.
+This will ease the process of updating and deleting interval/features from the `IntervalMetadata` object.
+
+## `BoundFeature` object structure
+This object is a mutable object, that contains attributes (i.e. `name`, `function`, `strand`, ...) as well as a list of intervals.  This object would have a [weakref](https://docs.python.org/3/library/weakref.html) to the corresponding interval object in the `IntervalTree`.  So if the intervals within `BoundFeature` are updated, the intervals within the `IntervalTree` are updated.
+
+`update(*args, **kwargs)`
+- `*args`: list of intervals that need to be swapped in
+- `**kwargs`: List of attributes that will be modified for the given `BoundFeature` object.
+- Updates the corresponding entries in the `IntervalTree`, if intervals are modified.
+```python
+f = BoundFeature(name='sagA', function='transport')
+f.update(function='toxin')
+f.update((1, 2))
+```
+
+`__del__`
+- Deletes a `BoundFeature`.  The corresponding interval(s) in the `IntervalTree` will be removed when this is called.
+
+## `IntervalMetadata` functions
+`constructor(features=None)`
+- `features` : list of `BoundFeature` objects.
+- Called to initialize the `IntervalMetadata` object
+
+`reverse_complement(length)`
+- `length` : int.  The length of the genome.  This is required when swapping coordinates
+- This performs a reverse complement on all the coordinates with in IntervalTree.
+- Same as original design
+
+`add(feature)`
+- `feature` : `skbio.BoundFeature`. new feature object add into the `IntervalMetadata` object
+- This allows for a single feature (include those that have non-continugous features) to be added into the `IntervalMetadata` object.
+
+```python
+   interval_metadata = IntervalMetadata()
+   interval_metadata.add(BoundFeature([1, (4, 7)], gene='sagA', function='toxin'))
+   interval_metadata.add(BoundFeature([(3, 5)], gene='sagB', function='toxin'), )
+```
+
+`query(*args, **kwargs)`
+- `*args` : an iterable of tuples to search for features
+- `**kwargs` : keyword arguments to query features by their attributes.
+- This allows for features to be searched by both intervals and keywords (i.e. CDS vs exon, ...)
+- Note that for a specific interval query, multiple features can be returned.
+- Same as the original design
+
