@@ -127,11 +127,19 @@ This will ease the process of updating and deleting interval/features from the `
 
 ## `BoundFeature` object structure
 This object is a mutable object, that contains attributes (i.e. `name`, `function`, `strand`, ...) as well as a list of intervals.  This object would have a [weakref](https://docs.python.org/3/library/weakref.html) to the corresponding interval object in the `IntervalTree`.  So if the intervals within `BoundFeature` are updated, the intervals within the `IntervalTree` are updated.
+We will probably want to have a reserved keyword for `intervals` in the `BoundFeature` object.  For instance, if we wanted to grab all of the intervals associated with a features, we should be able to run something as follows
+```python
+f = BoundFeature([1, (4, 7)], gene='sagA', function='toxin')
+f.intervals
+```
+This means, that the user should not be able to pass in a `intervals` keyword argument.
+
 
 `update(*args, **kwargs)`
 - `*args`: list of intervals that need to be swapped in
 - `**kwargs`: List of attributes that will be modified for the given `BoundFeature` object.
-- Updates the corresponding entries in the `IntervalTree`, if intervals are modified.
+- Updates the corresponding entries in the `IntervalTree`, if intervals are modified, through the weakref
+
 ```python
 f = BoundFeature(name='sagA', function='transport')
 f.update(function='toxin')
@@ -145,6 +153,7 @@ f.update((1, 2))
 `constructor(features=None)`
 - `features` : list of `BoundFeature` objects.
 - Called to initialize the `IntervalMetadata` object
+- The weakrefs will be updated here
 
 `reverse_complement(length)`
 - `length` : int.  The length of the genome.  This is required when swapping coordinates
@@ -154,6 +163,7 @@ f.update((1, 2))
 `add(feature)`
 - `feature` : `skbio.BoundFeature`. new feature object add into the `IntervalMetadata` object
 - This allows for a single feature (include those that have non-continugous features) to be added into the `IntervalMetadata` object.
+- The weakref will be updated here
 
 ```python
    interval_metadata = IntervalMetadata()
