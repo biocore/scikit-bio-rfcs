@@ -18,17 +18,25 @@ Additional benefits of having a `interval_metadata` objects include the ability 
 
 # Detailed design
 
-We propose to use the `IntervalTree` object in `bx-python.`  Some benchmarks have been made for various IntervalTree data structures - in this [benchmark](https://gist.github.com/shoyer/c939325f509d7c027949), bx-python was determined to have one of the fastest query times.
+We propose to store `interval_metadata` as `IntervalMetadata` object and associate it to `Sequence` (and its child classes) .
 
 ## `IntervalMetadata` object structure
-features : dictionary.  keys are `skbio.Feature` objects.  values are a list of tuples, where each tuple corresponds to an interval.
-intervals : bx-python `IntervalTree` object.  The keys correspond to intervals and the values correspond to a single `skbio.Feature` object.   
+
+This object will have 2 attributes:
+
+1. `features`
+   dict-like.  keys are `skbio.Feature` objects.  values are a list of tuples, where each tuple corresponds to an interval.
+
+2. `intervals`
+   bx-python `IntervalTree` object.  The keys correspond to intervals and the values correspond to a single `skbio.Feature` object. 
+
+   `IntervalTree` object in `bx-python.`  Some benchmarks have been made for various IntervalTree data structures - in this [benchmark](https://gist.github.com/shoyer/c939325f509d7c027949), bx-python was determined to have one of the fastest query times.
 
 These objects are arranged such that features can be queried by both feature attributes and intervals.
 
-## `Feature` object structure
-The feature object is more a less a immutable, hashable dictionary that inherits from `collections.Mapping`.  This store arbiturary information about features.  For instance, strand information, CDS, ...
-Since there is no standard in genbank and related formats for keywords, arbituary keywords can be encoded
+## `skbio.Feature` object structure
+The feature object is more a less a immutable, hashable dictionary that inherits from `collections.Mapping`.  This store arbitrary information about features.  For instance, strand information, gene name, ...
+Since there is no standard in genbank and related formats for keywords, arbitrary keywords can be encoded
 ```python
 gene = Feature(name='sagA', type='CDS', strand='+', function='toxin')
 ```
@@ -126,8 +134,7 @@ Another alternative is to make `BoundFeature` objects that are tightly coupled w
 This will ease the process of updating and deleting interval/features from the `IntervalMetadata` object.
 
 ## `BoundFeature` object structure
-This object is a mutable object, that contains attributes (i.e. `name`, `function`, `strand`, ...) as well as a list of intervals.  This object would have a [weakref](https://docs.python.org/3/library/weakref.html) to the corresponding interval object in the `IntervalTree`.  So if the intervals within `BoundFeature` are updated, the intervals within the `IntervalTree` are updated.
-We will probably want to have a reserved keyword for `intervals` in the `BoundFeature` object.  For instance, if we wanted to grab all of the intervals associated with a features, we should be able to run something as follows
+This object is a *mutable* object, that contains attributes (i.e. `name`, `function`, `strand`, ...) as well as a list of intervals.  This object would have a [weakref](https://docs.python.org/3/library/weakref.html) to the corresponding interval object in the `IntervalTree`.  if the intervals within `BoundFeature` are updated, the intervals within the `IntervalTree` are updated. We will probably want to have a reserved keyword for `intervals` in the `BoundFeature` object.  For instance, if we wanted to grab all of the intervals associated with a features, we should be able to run something as follows
 ```python
 f = BoundFeature([1, (4, 7)], gene='sagA', function='toxin')
 f.intervals
@@ -149,11 +156,18 @@ f.update((1, 2))
 `__del__`
 - Deletes a `BoundFeature`.  The corresponding interval(s) in the `IntervalTree` will be removed when this is called.
 
-## `IntervalMetadata` functions
+
+## `IntervalMetadata` object structure
+### Attributes
+* `features`: a list of `BoundFeature` object
+* `_update_flag`: boolean. Whenever any intervals of any member feature is modified, this is set to True, indicating `_intervaltree` needs to be updated.
+* `_intervaltree` (implemented as property): `IntervalTree` object created from all the intervales in the `features`. When this attributes is accessed by any methods (like `query` below), it checks `_update_flag` to decide whether to re-create from all intervals before it returns the interval tree. This lazy update saves computation.
+
+### Methods
 `constructor(features=None)`
 - `features` : list of `BoundFeature` objects.
 - Called to initialize the `IntervalMetadata` object
-- The weakrefs will be updated here
+- The weakrefs will be updated here to link the `BoundFeature` object to the current `IntervalMetadata` object
 
 `reverse_complement(length)`
 - `length` : int.  The length of the genome.  This is required when swapping coordinates
@@ -163,7 +177,7 @@ f.update((1, 2))
 `add(feature)`
 - `feature` : `skbio.BoundFeature`. new feature object add into the `IntervalMetadata` object
 - This allows for a single feature (include those that have non-continugous features) to be added into the `IntervalMetadata` object.
-- The weakref will be updated here
+- The weakref of the added `skbio.BoundFeature` will be updated
 
 ```python
    interval_metadata = IntervalMetadata()
@@ -178,3 +192,10 @@ f.update((1, 2))
 - Note that for a specific interval query, multiple features can be returned.
 - Same as the original design
 
+The mutability of the `BoundFeature` enable us to operate directly on the feature. For example:
+```python
+feature_list = interval_metadata.query(gene='ark')
+for gene in feture_list:
+    gene.GO = 'GO0003243'
+# Now all ark genes in the `interval_metadata` are updated. we don't need to interject the updated genes back into `interval_metadata` like we do for the imutable implementation.
+```
