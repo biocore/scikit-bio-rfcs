@@ -45,7 +45,7 @@ f.update(intervals=[(1, 2)])
 `__del__`
 - Deletes a `BoundFeature`.  The corresponding interval(s) and features in the `IntervalMetadata` will be removed when this is called.
 
-
+## `IntervalMetadata` object
 ### Attributes
 * `features`: a list of `BoundFeature` objects
 * `_staled`: boolean. Whenever any intervals of any member feature is modified, this is set to True, indicating `_intervaltree` needs to be updated.
