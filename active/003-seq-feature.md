@@ -42,8 +42,6 @@ f.update(function='toxin')
 f.update(intervals=[(1, 2)])
 ```
 
-`__del__`
-- Deletes a `BoundFeature`.  The corresponding interval(s) and features in the `IntervalMetadata` will be removed when this is called.
 
 ## `IntervalMetadata` object
 ### Attributes
@@ -85,6 +83,10 @@ f.update(intervals=[(1, 2)])
    interval_metadata.add(BoundFeature([1, (4, 7)], gene='sagA', function='toxin'))
    interval_metadata.add(BoundFeature([(3, 5)], gene='sagB', function='toxin'), )
 ```
+
+`drop(feature)`
+- Deletes a `BoundFeature`.
+- Set `_staled` to True
 
 `query(*args, **kwargs)`
 - `*args` : an iterable of interval tuples to search for features
