@@ -22,15 +22,15 @@ We propose 2 new public data objects: `BoundFeature` and `IntervalMetadata`. `Bo
 
 ## `BoundFeature` object
 This object is a *mutable* object, that contains atribtrary attributes (i.e. `intervals`, `gene_name`, `function`, `strand`, ...) to store the all the info of a sequence feature. This object would also have a [weakref](https://docs.python.org/3/library/weakref.html) to the corresponding `IntervalMetadata` object. If the intervals of a `BoundFeature` are updated, the interval tree within the `IntervalMetadata` object is also auto updated. The weak reference enables the tight coupling between `BoundFeature` and `IntervalMetadata`. The mutability of `BoundFeature` enables us to directly modify a `BoundFeature` object from a `IntervalMetadata` object.
-
-The `intervals`, `strand`, `wref` are enforced attributes to store coordinates, strand, and a weak reference. The construction would be like:
+The `intervals`, `strand`, `wref`, and `boundaries` are enforced attributes to store coordinates, strand, and a weak reference. The construction would be like:
 ```python
->>> f = BoundFeature(intervals=[1, (4, 7)], strand='+', wref=None, gene='sagA', function='toxin')
+>>> f = BoundFeature(intervals=[1, (4, 7)], strand='+', boundaries=[(True, True), (False, False)], wref=None, gene='sagA', function='toxin')
 >>> f.intervals  # get coordinates
 >>> f.wref   # get weak ref to the interval metadata
 >>> f.function   # get the feature info
 ```
-
+Note, in the above example, the interval `1` is shorthand for `(1, 2)`.  
+`boundaries` records the openness of each interval.  So a boundary of `(True, False)` would it indicate that interval was left open and right closed.
 ### methods
 `update(**kwargs)`
 - `**kwargs`: List of attributes that will be modified for the given `BoundFeature` object.
