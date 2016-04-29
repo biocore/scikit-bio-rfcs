@@ -21,17 +21,28 @@ Additional benefits of having a `interval_metadata` objects include the ability 
 We propose 2 new public data objects: `BoundFeature` and `IntervalMetadata`. `BoundFeature` stores all the attributes of a feature. `IntervalMetadata` stores all the `BoundFeatures` objects of a sequence and add it as `interval_metadata` attribute (as similar to `positional_metadata`) in `Sequence` (and its child classes).
 
 ## `BoundFeature` object
-This object is a *mutable* object, that contains atribtrary attributes (i.e. `intervals`, `gene_name`, `function`, `strand`, ...) to store the all the info of a sequence feature. This object would also have a [weakref](https://docs.python.org/3/library/weakref.html) to the corresponding `IntervalMetadata` object. If the intervals of a `BoundFeature` are updated, the interval tree within the `IntervalMetadata` object is also auto updated. The weak reference enables the tight coupling between `BoundFeature` and `IntervalMetadata`. The mutability of `BoundFeature` enables us to directly modify a `BoundFeature` object from a `IntervalMetadata` object.
-The `intervals`, `strand`, `wref`, and `boundaries` are enforced attributes to store coordinates, strand, and a weak reference. The construction would be like:
+This object is a *mutable* object, that contains atribtrary attributes (i.e. `gene_name`, `product`, ...) to store the all the info of a sequence feature. This object would also have a [weakref](https://docs.python.org/3/library/weakref.html) to the corresponding `IntervalMetadata` object. If the intervals of a `BoundFeature` are updated, the interval tree within the `IntervalMetadata` object is also auto updated. The weak reference enables the tight coupling between `BoundFeature` and `IntervalMetadata`. The mutability of `BoundFeature` enables us to directly modify a `BoundFeature` object from a `IntervalMetadata` object.
+
+### enforced attributes
+Besides user arbitrarily given attributes, we enforce the following attribues:
+
+* `intervals`: store intervals of coordinates
+* `strand`: strand
+* `wref`: a weak reference to `IntervalMetadata` object
+* `boundaries`: records the openness of each interval.  So a boundary of `(True, False)` would it indicate that the exact right boundary is unknown, corresponding to the examples [here](ftp://ftp.ebi.ac.uk/pub/databases/embl/doc/FT_current.html#3.4.3).
+
+
+### methods
+`__init__(**kwargs)`
+The construction would be like:
 ```python
 >>> f = BoundFeature(intervals=[1, (4, 7)], strand='+', boundaries=[(True, True), (False, False)], wref=None, gene='sagA', function='toxin')
 >>> f.intervals  # get coordinates
 >>> f.wref   # get weak ref to the interval metadata
 >>> f.function   # get the feature info
 ```
-Note, in the above example, the interval `1` is shorthand for `(1, 2)`.  
-`boundaries` records the openness of each interval.  So a boundary of `(True, False)` would it indicate that interval was left open and right closed.
-### methods
+Note, in the above example, the interval `1` is shorthand for `(1, 2)`.
+
 `update(**kwargs)`
 - `**kwargs`: List of attributes that will be modified for the given `BoundFeature` object.
 - Updates the corresponding entries in the `IntervalMetadata`, if intervals are modified, through the weakref
