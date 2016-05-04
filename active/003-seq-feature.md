@@ -8,17 +8,17 @@ Contributors: ["@RNAer", "@mortonjt", "@ebolyen", "@jairideout", "@wasade", "@gr
 
 # Summary
 
-Introduce an `interval_metadata` object to allow for the storage, modification, and querying of features covering a region of a biological sequence. A feature is defined as a sub-region of a seuqence that is a functional entity, e.g., a gene, a riboswitch, an exon, etc.
+Introduce an `feature_metadata` object to allow for the storage, modification, and querying of features covering a region of a biological sequence. A feature is defined as a sub-region of a seuqence that is a functional entity, e.g., a gene, a riboswitch, an exon, etc.
 
 # Motivation
 
 The current implementation of `positional_metadata` in the `Sequence` class takes > 1TB memory to read in a E. coli genome with 260K features. And the `pandas` sparse data frame can alleviate the mem usage, but it is still too memory hogging. The discussion is mainly in this [thread](https://github.com/biocore/scikit-bio/issues/1159).  Storing intervals instead of `positional_metadata` would substantially save on memory.
 
-Additional benefits of having a `interval_metadata` objects include the ability to rapidly query features by coordinates.  Interval trees allow for both querying by position and ranges to retrieve all overlapping intervals.  This can be particularly helpful when dealing with layers of features (i.e. transcripts made up of exons, or operons made up of genes).
+Additional benefits of having a `feature_metadata` objects include the ability to rapidly query features by coordinates.  Interval trees allow for both querying by position and ranges to retrieve all overlapping intervals.  This can be particularly helpful when dealing with layers of features (i.e. transcripts made up of exons, or operons made up of genes).
 
 # Detailed design
 
-We propose 2 new public data objects: `BoundFeature` and `IntervalMetadata`. `BoundFeature` stores all the attributes of a feature. `IntervalMetadata` stores all the `BoundFeatures` objects of a sequence and add it as `interval_metadata` attribute (as similar to `positional_metadata`) in `Sequence` (and its child classes).
+We propose 2 new public data objects: `BoundFeature` and `IntervalMetadata`. `BoundFeature` stores all the attributes of a feature. `IntervalMetadata` stores all the `BoundFeatures` objects of a sequence and add it as `feature_metadata` attribute (as similar to `positional_metadata`) in `Sequence` (and its child classes).
 
 ## `BoundFeature` object
 This object is a *mutable* object, that contains arbitrary attributes (i.e. `gene_name`, `product`, ...) to store the all the info of a sequence feature. This object would also have a [weakref](https://docs.python.org/3/library/weakref.html) to the corresponding `IntervalMetadata` object. If the intervals of a `BoundFeature` are updated, the interval tree within the `IntervalMetadata` object is also auto updated. The weak reference enables the tight coupling between `BoundFeature` and `IntervalMetadata`. The mutability of `BoundFeature` enables us to directly modify a `BoundFeature` object from a `IntervalMetadata` object.
@@ -28,7 +28,7 @@ Besides user arbitrarily given attributes, we enforce the following attribues:
 
 * `intervals`: store intervals of coordinates.  This is represented as a list of tuples of a pair of ints
 * `strand`: strand
-* `wref`: a weak reference to `IntervalMetadata` object
+* `wref`: a weak reference to `IntervalMetadata` object.  This is a private attribute.
 * `boundaries`: records the openness of each interval.  So a boundary of `(True, False)` would it indicate that the exact right boundary is unknown, corresponding to the examples [here](ftp://ftp.ebi.ac.uk/pub/databases/embl/doc/FT_current.html#3.4.3).
 
 
@@ -85,9 +85,9 @@ f.update(intervals=[(1, 2)])
 - Set `_staled_tree` to True
 
 ```python
-   >>> interval_metadata = IntervalMetadata()
-   >>> interval_metadata.add(Feature(gene='sagB', cds=True, intervals=[(3, 5)])
-   >>> iv = interval_metadata.reverse_complement(length=10)
+   >>> feature_metadata = IntervalMetadata()
+   >>> feature_metadata.add(Feature(gene='sagB', cds=True, intervals=[(3, 5)])
+   >>> iv = feature_metadata.reverse_complement(length=10)
    >>> f = iv.query(gene='sagB')
    >>> f.intervals
    [(5, 7)]
@@ -97,13 +97,13 @@ f.update(intervals=[(1, 2)])
 - `*args` : an iterable of interval tuples to search for features
 - `**kwargs` : keyword arguments to query features by their attributes.
 - Creates a new `BoundFeature` object to be inserted into the `IntervalTree`
-- This allows for a single feature (include those that have non-continugous features) to be added into the `IntervalMetadata` object.
+- This allows for a single feature (including those that have non-contiguous intervals) to be added into the `IntervalMetadata` object.
 - The weakref of the added `BoundFeature` will be updated
 - set `_staled_tree` to True.
 ```python
-   interval_metadata = IntervalMetadata()
-   interval_metadata.add(1, (4, 7), gene='sagA', function='toxin'))
-   interval_metadata.add((3, 5), gene='sagB', function='toxin'))
+   feature_metadata = IntervalMetadata()
+   feature_metadata.add(1, (4, 7), gene='sagA', function='toxin'))
+   feature_metadata.add((3, 5), gene='sagB', function='toxin'))
 ```
 
 `drop(*args, **kwargs)`
@@ -118,19 +118,19 @@ f.update(intervals=[(1, 2)])
 - Returns a generator of `BoundFeature` objects that satisfy the search criteria
 
 ```python
-   interval_metadata = IntervalMetadata(features={
-                                        BoundFeature(gene='sagA', intervals=[(0, 2), (4, 7)]),
-                                        BoundFeature(gene='sagB', intervals=[(3, 5)]}))
+   feature_metadata = IntervalMetadata(features={
+                                       BoundFeature(gene='sagA', intervals=[(0, 2), (4, 7)]),
+                                       BoundFeature(gene='sagB', intervals=[(3, 5)]}))
  
-   feats = interval_metadata.query((1, 2))
-   feats = interval_metadata.query(gene='sagB')
+   feats = feature_metadata.query((1, 2))
+   feats = feature_metadata.query(gene='sagB')
 ```
 
 The mutability of the `BoundFeature` enable us to operate directly on the feature. For example:
 ```python
-for gene in feats = interval_metadata.query(gene='sagB'):
+for gene in feats = feature_metadata.query(gene='sagB'):
     gene.GO = 'GO0003243'
-# Now all sagB genes in the `interval_metadata` are updated. we don't need to interject the updated genes back into `interval_metadata` like we do for the previouly proposed imutable implementation.
+# Now all sagB genes in the `feature_metadata` are updated. we don't need to interject the updated genes back into `feature_metadata` like we do for the previouly proposed imutable implementation.
 ```
 
 ## Drawbacks
