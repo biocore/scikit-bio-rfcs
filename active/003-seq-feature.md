@@ -53,12 +53,21 @@ f.update(function='toxin')
 f.update(intervals=[(1, 2)])
 ```
 
+`__getitem__(kwd)`
+- `kwd`: str, the keyword argument
+- Retrieves the value of a keyword attribute
+
+```python
+>>> f = BoundFeature(name='sagA', function='transport')
+>>> f['name']
+'sagA'
+```
 
 ## `IntervalMetadata` object
 ### Attributes
 * `features`: a list of unique `BoundFeature` objects, stored in an unordered fashion.
 * `_staled_tree`: boolean. Whenever any intervals of any member feature is modified, this is set to True, indicating `_intervaltree` needs to be updated.
-* `_intervaltree` (implemented as property): `IntervalTree` object created from all the intervales in the `features`. When this attributes is accessed by any methods (like `query` below), it checks `_staled` to decide whether to re-create from all intervals before it returns the interval tree. This lazy update saves computation.
+* `_intervaltree` (implemented as property): `IntervalTree` object created from all the intervales in the `features`. When this attributes is accessed by any methods (like `query` below), it checks `_staled_tree` to decide whether to re-create from all intervals before it returns the interval tree. This lazy update saves computation.
 
    This is implemented as bx-python `IntervalTree` object.  The keys correspond to intervals and the values correspond to a single `BoundFeature` object. 
 
@@ -84,19 +93,21 @@ f.update(intervals=[(1, 2)])
    [(5, 7)]
 ```
 
-`add(feature)`
-- `feature` : `BoundFeature`. Add a new feature into the `IntervalMetadata` object
+`add(*args, **kwargs)`
+- `*args` : an iterable of interval tuples to search for features
+- `**kwargs` : keyword arguments to query features by their attributes.
+- Creates a new `BoundFeature` object to be inserted into the `IntervalTree`
 - This allows for a single feature (include those that have non-continugous features) to be added into the `IntervalMetadata` object.
 - The weakref of the added `BoundFeature` will be updated
-- set `_staled` to True.
+- set `_staled_tree` to True.
 ```python
    interval_metadata = IntervalMetadata()
-   interval_metadata.add(BoundFeature([1, (4, 7)], gene='sagA', function='toxin'))
-   interval_metadata.add(BoundFeature([(3, 5)], gene='sagB', function='toxin'), )
+   interval_metadata.add(1, (4, 7), gene='sagA', function='toxin'))
+   interval_metadata.add((3, 5), gene='sagB', function='toxin'))
 ```
 
-`drop(feature)`
-- Deletes a `BoundFeature`.
+`drop(*args, **kwargs)`
+- Drops all `BoundFeature` objects that matches the query.
 - Set `_staled_tree` to True
 
 `query(*args, **kwargs)`
