@@ -171,6 +171,4 @@ The mutability of the `BoundFeature` enable us to operate directly on the featur
 ## Drawbacks
 - The `query` method does a linear lookup when searching for attributes over features. (The query by intervals are still super fast). This problem can blow up (in terms of development) if we want faster querying by attributes. We don't think there is a need for tons of queries by attributes. Thus, we sacrifice this for much better API design by implementing `BoundFeature` as mutable rather than immutable.
 
-##Questions
-- Should we make a distinction between `BoundFeature` objects and `Feature` objects?
 
