@@ -20,29 +20,32 @@ Additional benefits of having a `feature_metadata` objects include the ability t
 
 We propose 2 new public data objects: `BoundFeature` and `IntervalMetadata`. `BoundFeature` stores all the attributes of a feature. `IntervalMetadata` stores all the `BoundFeatures` objects of a sequence and add it as `feature_metadata` attribute (as similar to `positional_metadata`) in `Sequence` (and its child classes).
 
-## `Feature` object.
-This object is a *immutable object*, that contains arbitrary attributes, no enforced attributes and is hashable.
-
 ## `BoundFeature` object
 This object is a *mutable* object, that contains arbitrary attributes (i.e. `gene_name`, `product`, ...) to store the all the info of a sequence feature, with the exception of a few required attributes. This object would also have a reference to the corresponding `IntervalMetadata` object. If the intervals of a `BoundFeature` are updated, the interval tree within the `IntervalMetadata` object is also auto updated. The weak reference enables the tight coupling between `BoundFeature` and `IntervalMetadata`. The mutability of `BoundFeature` enables us to directly modify a `BoundFeature` object from a `IntervalMetadata` object.
 
 ### enforced attributes
 Besides user arbitrarily given attributes, we enforce the following attributes:
-
 * `intervals`: store intervals of coordinates.  This is represented as a list of tuples of a pair of ints
 * `ref`: a reference to `IntervalMetadata` object.  This is a private attribute.
 * `boundaries`: records the openness of each interval.  So a boundary of `(True, False)` would it indicate that the exact right boundary is unknown, corresponding to the examples [here](ftp://ftp.ebi.ac.uk/pub/databases/embl/doc/FT_current.html#3.4.3).
+* `data`: Dictionary of atttributes
 
 
 ### methods
 `__init__(**kwargs)`
 The construction would be like:
 ```python
->>> f = BoundFeature(intervals=[(1, 2), (4, 7)], strand='+', boundaries=[(True, True), (False, False)], ref=None, gene='sagA', function='toxin')
->>> f.intervals  # get coordinates
->>> f.ref   # get ref to the interval metadata.  This is a private attribute
->>> f.function   # get the feature info
+im = IntervalMetadata()
+im.add(intervals=[(1,2), (4,7)], ref=None, boundaries=None, {'foo': 'bar', 'abc': [1,2,3], 'intervals': 'yeah!!'}) # this is adding a single dict, could support an iterable of dicts
+bound_feature = next(im.query('foo')) # bound_feature of type BoundFeature
+bound_feature.intervals # returns [(1,2), (4,7)]
+bound_feature['foo'] # returns 'bar'
+bound_feature['abc'] # returns [1,2,3]
+bound_feature['intervals'] # returns 'yeah!!'
+# there should also be a __setitem__
+bound_feature['new-thing'] = 42
 ```
+
 Note, in the above example, the interval `1` is shorthand for `(1, 2)`.
 
 `update(**kwargs)`
@@ -60,9 +63,18 @@ f.update(intervals=[(1, 2)])
 - Retrieves the value of a keyword attribute
 
 ```python
->>> f = BoundFeature(name='sagA', function='transport')
+>>> f = BoundFeature(intervals=[(1,2), (4,7)], ref=None, boundaries=None, name='sagA', function='transport')
 >>> f['name']
 'sagA'
+```
+
+`__setitem__(kwd)`
+- `kwd`: str, the keyword argument
+- Retrieves the value of a keyword attribute
+
+```python
+>>> f = BoundFeature(name='sagA', function='transport')
+>>> f['name'] = 'sagB'
 ```
 
 ## `IntervalMetadata` object
@@ -99,10 +111,11 @@ f.update(intervals=[(1, 2)])
 
 `add(intervals, features)`
 - `intervals` : an iterable of interval tuples to search for features
-- `features` : an iterable of `Feature` objects.
-- Creates a new `BoundFeature` object to be inserted into the `IntervalTree`
-- This allows for a single feature (including those that have non-contiguous intervals) to be added into the `IntervalMetadata` object.
-- The reference of the added `BoundFeature` will be updated
+- `features` : an iterable of dictionaries objects.
+- Create the `BoundFeature` objects inside
+- Inserts a list of `BoundFeature` objects into the `IntervalTree`
+- This allows for multiple features (including those that have non-contiguous intervals) to be added into the `IntervalMetadata` object.
+- The references of the added `BoundFeature` objects will be updated
 - set `_staled_tree` to True.
 ```python
    feature_metadata = IntervalMetadata()
