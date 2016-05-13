@@ -14,7 +14,7 @@ Introduce an `feature_metadata` object to allow for the storage, modification, a
 
 The current implementation of `positional_metadata` in the `Sequence` class takes > 1TB memory to read in a E. coli genome with 260K features. And the `pandas` sparse data frame can alleviate the mem usage, but it is still too memory hogging. The discussion is mainly in this [thread](https://github.com/biocore/scikit-bio/issues/1159).  Storing intervals instead of `positional_metadata` would substantially save on memory.
 
-Additional benefits of having a `feature_metadata` objects include the ability to rapidly query features by coordinates.  Interval trees allow for both querying by position and ranges to retrieve all overlapping intervals.  This can be particularly helpful when dealing with layers of features (i.e. transcripts made up of exons, or operons made up of genes).
+Additional benefits of having a `feature_metadata` objects include the ability to rapidly query features by coordinates.  Interval trees allow for both querying by position and ranges to retrieve all overlapping intervals.  This can be particularly helpful when dealing with layers of features (i.e. transcripts made up of exons, or operons made up of genes).  In addition, this metadata could be used in other objects such as TabularMSA to store coding information within each alignment.
 
 # Detailed design
 
@@ -30,7 +30,6 @@ This object is a *mutable* object, that contains arbitrary attributes (i.e. `gen
 Besides user arbitrarily given attributes, we enforce the following attributes:
 
 * `intervals`: store intervals of coordinates.  This is represented as a list of tuples of a pair of ints
-* `strand`: strand 
 * `ref`: a reference to `IntervalMetadata` object.  This is a private attribute.
 * `boundaries`: records the openness of each interval.  So a boundary of `(True, False)` would it indicate that the exact right boundary is unknown, corresponding to the examples [here](ftp://ftp.ebi.ac.uk/pub/databases/embl/doc/FT_current.html#3.4.3).
 
@@ -82,7 +81,9 @@ f.update(intervals=[(1, 2)])
 - Called to initialize the `IntervalMetadata` object
 - The references will be updated here to link each `BoundFeature` object to the current `IntervalMetadata` object
 
-`reverse_complement()`
+`reverse_complement(kwd)`
+- `kwd` : `str`, argument to specify the where the strand information is stored.
+- The strand information will be flipped
 - This performs a reverse complement on all the coordinates with in IntervalTree.
 - Relies on the length method to be implemented in the parent class 
 - Set `_staled_tree` to True
@@ -96,9 +97,9 @@ f.update(intervals=[(1, 2)])
    [(5, 7)]
 ```
 
-`add(*args, **kwargs)`
-- `*args` : an iterable of interval tuples to search for features
-- `**kwargs` : keyword arguments to query features by their attributes.
+`add(intervals, features)`
+- `intervals` : an iterable of interval tuples to search for features
+- `features` : an iterable of `Feature` objects.
 - Creates a new `BoundFeature` object to be inserted into the `IntervalTree`
 - This allows for a single feature (including those that have non-contiguous intervals) to be added into the `IntervalMetadata` object.
 - The reference of the added `BoundFeature` will be updated
@@ -141,3 +142,4 @@ for gene in feats = feature_metadata.query(gene='sagB'):
 
 ##Questions
 - Should we make a distinction between `BoundFeature` objects and `Feature` objects?
+
