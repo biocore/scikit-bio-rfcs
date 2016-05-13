@@ -110,7 +110,7 @@ f.update(intervals=[(1, 2)])
    [(5, 7)]
 ```
 
-`add(intervals, boundaries, features)`
+`add(intervals, features, boundaries=None)`
 - `intervals` : an iterable of interval tuples to search for features
 - `boundaries` : an iterable of boundary tuples to create features
 - `features` : an iterable of dictionaries objects.
@@ -125,14 +125,14 @@ f.update(intervals=[(1, 2)])
    feature_metadata.add((3, 5), gene='sagB', function='toxin'))
 ```
 
-`drop(intervals, **kwargs)`
+`drop(intervals, keywords, how)`
 - `intervals` : an iterable of interval tuples to search for features
 - `keywords` : a dictionary to query features by their attributes.
 - `how`: `str` specify `intersection`, or `union` of queries results
 - Drops all `BoundFeature` objects that matches the query.
 - Set `_is_stale_tree` to True
 
-`query(intervals, **kwargs)`
+`query(intervals, keywords, how)`
 - `intervals` : an iterable of interval tuples to search for features
 - `keywords` : a dictionary to query features by their attributes.
 - `how`: `str` specify `intersection`, or `union` of queries results
