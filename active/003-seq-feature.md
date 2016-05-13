@@ -21,22 +21,22 @@ Additional benefits of having a `feature_metadata` objects include the ability t
 We propose 2 new public data objects: `BoundFeature` and `IntervalMetadata`. `BoundFeature` stores all the attributes of a feature. `IntervalMetadata` stores all the `BoundFeatures` objects of a sequence and add it as `feature_metadata` attribute (as similar to `positional_metadata`) in `Sequence` (and its child classes).
 
 ## `BoundFeature` object
-This object is a *mutable* object, that contains arbitrary attributes (i.e. `gene_name`, `product`, ...) to store the all the info of a sequence feature, with the exception of a few required attributes. This object would also have a reference to the corresponding `IntervalMetadata` object. If the intervals of a `BoundFeature` are updated, the interval tree within the `IntervalMetadata` object is also auto updated. The weak reference enables the tight coupling between `BoundFeature` and `IntervalMetadata`. The mutability of `BoundFeature` enables us to directly modify a `BoundFeature` object from a `IntervalMetadata` object.
+This object is a *mutable* object, that contains arbitrary attributes (i.e. `gene_name`, `product`, ...) to store the all the info of a sequence feature, with the exception of a few required attributes. This object would also have a reference to the corresponding `IntervalMetadata` object. If the intervals of a `BoundFeature` are updated, the interval tree within the `IntervalMetadata` object is also auto updated. The reference enables the tight coupling between `BoundFeature` and `IntervalMetadata`. The mutability of `BoundFeature` enables us to directly modify a `BoundFeature` object from a `IntervalMetadata` object.
 
-### enforced attributes
+### required arguments
 Besides user arbitrarily given attributes, we enforce the following attributes:
 * `intervals`: store intervals of coordinates.  This is represented as a list of tuples of a pair of ints
-* `ref`: a reference to `IntervalMetadata` object.  This is a private attribute.
 * `boundaries`: records the openness of each interval.  So a boundary of `(True, False)` would it indicate that the exact right boundary is unknown, corresponding to the examples [here](ftp://ftp.ebi.ac.uk/pub/databases/embl/doc/FT_current.html#3.4.3).
 * `data`: Dictionary of atttributes
+* `ref`: a private reference to `IntervalMetadata` object.  This is a private attribute. but not exposed to the public api
 
 
 ### methods
-`__init__(**kwargs)`
+`__init__(interval, boundaries, data)`
 The construction would be like:
 ```python
 im = IntervalMetadata()
-im.add(intervals=[(1,2), (4,7)], ref=None, boundaries=None, {'foo': 'bar', 'abc': [1,2,3], 'intervals': 'yeah!!'}) # this is adding a single dict, could support an iterable of dicts
+im.add(intervals=[(1,2), (4,7)], boundaries=None, {'foo': 'bar', 'abc': [1,2,3], 'intervals': 'yeah!!'}) # this is adding a single dict, could support an iterable of dicts
 bound_feature = next(im.query('foo')) # bound_feature of type BoundFeature
 bound_feature.intervals # returns [(1,2), (4,7)]
 bound_feature['foo'] # returns 'bar'
@@ -50,7 +50,7 @@ Note, in the above example, the interval `1` is shorthand for `(1, 2)`.
 
 `update(**kwargs)`
 - `**kwargs`: List of attributes that will be modified for the given `BoundFeature` object.
-- Updates the corresponding entries in the `IntervalMetadata`, if intervals are modified, through the weakref
+- Updates the corresponding entries in the `IntervalMetadata`, if intervals are modified, through the ref
 
 ```python
 f = BoundFeature(name='sagA', function='transport')
@@ -63,7 +63,7 @@ f.update(intervals=[(1, 2)])
 - Retrieves the value of a keyword attribute
 
 ```python
->>> f = BoundFeature(intervals=[(1,2), (4,7)], ref=None, boundaries=None, name='sagA', function='transport')
+>>> f = BoundFeature(intervals=[(1,2), (4,7)], boundaries=None, name='sagA', function='transport')
 >>> f['name']
 'sagA'
 ```
@@ -80,8 +80,8 @@ f.update(intervals=[(1, 2)])
 ## `IntervalMetadata` object
 ### Attributes
 * `features`: a list of unique `BoundFeature` objects, stored in an unordered fashion.
-* `_staled_tree`: boolean. Whenever any intervals of any member feature is modified, this is set to True, indicating `_intervaltree` needs to be updated.
-* `_intervaltree` (implemented as property): `IntervalTree` object created from all the intervales in the `features`. When this attributes is accessed by any methods (like `query` below), it checks `_staled_tree` to decide whether to re-create from all intervals before it returns the interval tree. This lazy update saves computation.
+* `_is_stale_tree`: boolean. Whenever any intervals of any member feature is modified, this is set to True, indicating `_intervaltree` needs to be updated.
+* `_intervaltree` (implemented as property): `IntervalTree` object created from all the intervales in the `features`. When this attributes is accessed by any methods (like `query` below), it checks `_is_stale_tree` to decide whether to re-create from all intervals before it returns the interval tree. This lazy update saves computation.
 
    This is implemented as bx-python `IntervalTree` object.  The keys correspond to intervals and the values correspond to a single `BoundFeature` object. 
 
@@ -98,7 +98,7 @@ f.update(intervals=[(1, 2)])
 - The strand information will be flipped
 - This performs a reverse complement on all the coordinates with in IntervalTree.
 - Relies on the length method to be implemented in the parent class 
-- Set `_staled_tree` to True
+- Set `_is_stale_tree` to True
 
 ```python
    >>> feature_metadata = IntervalMetadata()
@@ -116,7 +116,7 @@ f.update(intervals=[(1, 2)])
 - Inserts a list of `BoundFeature` objects into the `IntervalTree`
 - This allows for multiple features (including those that have non-contiguous intervals) to be added into the `IntervalMetadata` object.
 - The references of the added `BoundFeature` objects will be updated
-- set `_staled_tree` to True.
+- set `_is_stale_tree` to True.
 ```python
    feature_metadata = IntervalMetadata()
    feature_metadata.add((1, 2), (4, 7), gene='sagA', function='toxin'))
@@ -125,7 +125,7 @@ f.update(intervals=[(1, 2)])
 
 `drop(*args, **kwargs)`
 - Drops all `BoundFeature` objects that matches the query.
-- Set `_staled_tree` to True
+- Set `_is_stale_tree` to True
 
 `query(*args, **kwargs)`
 - `*args` : an iterable of interval tuples to search for features
